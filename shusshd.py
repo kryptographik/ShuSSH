@@ -19,7 +19,18 @@ Options:
 VERSION = 0.1
 
 # Copyright (c) 2015 Noah Tippett
-# All rights reserved
+#
+# Any person obtaining a copy of this source code may use it or learn from it as
+# they see fit. Distribution or use with the intent to profit or distribution of
+# a modified copy of this source code is prohbited. All other rights reserved.
+#
+# THIS SOURCE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THIS SOURCE CODE OR THE USE OR OTHER DEALINGS IN
+# THIS SOURCE CODE.
 
 import datetime
 import os
@@ -38,7 +49,7 @@ imported = False
 try:
     from docopt import docopt
 except ImportError:
-    print("This program requires docopt to be installed. (http://docopt.org/)")
+    print("This program requires docopt (http://docopt.org/)")
     print("")
     print("     Try 'pip install docopt'...")
     print("")
@@ -47,7 +58,7 @@ except ImportError:
 try:
     import paramiko
 except ImportError:
-    print("This program requires paramiko to be installed. (http://www.paramiko.org/)")
+    print("This program requires paramiko (http://www.paramiko.org/)")
     print("")
     print("     Try 'pip install paramiko'...")
     print("")
@@ -57,7 +68,7 @@ try:
     from passlib.hash import bcrypt_sha256 as bcrypt
     from passlib.exc import MissingBackendError
 except ImportError:
-    print("This program requires passlib to be installed. (https://pythonhosted.org/passlib/)")
+    print("This program requires passlib (https://pythonhosted.org/passlib/)")
     print("")
     print("     Try 'pip install passlib'...")
     print("")
