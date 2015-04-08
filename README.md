@@ -7,11 +7,12 @@ ShuSSH Server requirements:
  - docopt (http://docopt.org/)
  - Paramiko (http://www.paramiko.org/)
  - Passlib (https://pythonhosted.org/passlib/)
-        If your system does not already have a bcrypt backend (e.g. most non BSDs)
-        you will also need to install one of these:
-         - bcrypt (http://bcrypt.sourceforge.net/)
-         - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
-         - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
+
+If your system does not already have a bcrypt backend (e.g. most non BSDs)
+you will also need to install one of these:
+ - bcrypt (http://bcrypt.sourceforge.net/)
+ - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
+ - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
 
 Once all the dependencies are installed, you simply run shusshd.py:
 
