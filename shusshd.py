@@ -34,26 +34,48 @@ import time
 from queue import Queue
 from binascii import hexlify
 
-try:
-    import paramiko
-except ImportError:
-    print("This program requires paramiko to be installed. (http://www.paramiko.org/)")
-    print("")
-    print("     Try 'pip install paramiko'...")
-
-try:
-    from passlib.hash import bcrypt_sha256 as bcrypt
-except ImportError:
-    print("This program requires passlib to be installed. (https://pythonhosted.org/passlib/)")
-    print("")
-    print("     Try 'pip install passlib'...")
-
+imported = False
 try:
     from docopt import docopt
 except ImportError:
     print("This program requires docopt to be installed. (http://docopt.org/)")
     print("")
     print("     Try 'pip install docopt'...")
+    print("")
+    imported = True
+
+try:
+    import paramiko
+except ImportError:
+    print("This program requires paramiko to be installed. (http://www.paramiko.org/)")
+    print("")
+    print("     Try 'pip install paramiko'...")
+    print("")
+    imported = True
+
+try:
+    from passlib.hash import bcrypt_sha256 as bcrypt
+    from passlib.exc import MissingBackendError
+except ImportError:
+    print("This program requires passlib to be installed. (https://pythonhosted.org/passlib/)")
+    print("")
+    print("     Try 'pip install passlib'...")
+    print("")
+    imported = True
+finally:
+    try:
+        bcrypt.get_backend()
+    except MissingBackendError:
+        print("Your system does not have bcrypt installed. Try one of these implementations:")
+        print("")
+        print("     bcrypt      (http://bcrypt.sourceforge.net/)")
+        print("     py-bcrypt   (http://www.mindrot.org/projects/py-bcrypt/")
+        print("     bcryptor    (https://pypi.python.org/pypi/Bcryptor)")
+        print("")
+        imported = True
+
+if imported is True:
+    sys.exit(1)
 
 from paramiko.py3compat import u
 
