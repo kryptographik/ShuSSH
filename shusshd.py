@@ -16,15 +16,6 @@ Options:
 
 '''
 from __future__ import print_function
-import sys
-if sys.hexversion <  0x020700F0:
-    print ("Please use python 2.7 or higher.")
-    sys.exit()
-elif sys.hexversion < 0x030000a1:
-    pyV=2
-else:
-    pyV=3
-
 
 VERSION = 0.1
 
@@ -32,7 +23,7 @@ VERSION = 0.1
 #
 # Any person obtaining a copy of this source code may use it or learn from it as
 # they see fit. Distribution or use with the intent to profit or distribution of
-# a modified copy of this source code is prohbited. All other rights reserved.
+# a modified copy of this source code is prohibited. All other rights reserved.
 #
 # THIS SOURCE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -41,6 +32,17 @@ VERSION = 0.1
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THIS SOURCE CODE OR THE USE OR OTHER DEALINGS IN
 # THIS SOURCE CODE.
+
+import sys
+if sys.hexversion <  0x020700F0:
+    print ("Please use python 2.7 or higher.")
+    sys.exit()
+elif sys.hexversion < 0x030000a1:
+    pyV=2
+    print ("Please use python 3.0 or higher.")
+    sys.exit()
+else:
+    pyV=3
 
 import datetime
 import os
@@ -62,7 +64,7 @@ else:
     print("Unsupported python version.")
     sys.exit()
 
-imported = False
+imported = True
 try:
     from docopt import docopt
 except ImportError:
@@ -70,7 +72,7 @@ except ImportError:
     print("")
     print("     Try 'pip install docopt'...")
     print("")
-    imported = True
+    imported = False
 
 try:
     import paramiko
@@ -81,7 +83,7 @@ except ImportError:
     print("")
     print("     Try 'pip install paramiko'...")
     print("")
-    imported = True
+    imported = False
 
 try:
     from passlib.hash import bcrypt_sha256 as bcrypt
@@ -91,7 +93,7 @@ except ImportError:
     print("")
     print("     Try 'pip install passlib'...")
     print("")
-    imported = True
+    imported = False
 finally:
     try:
         bcrypt.get_backend()
@@ -102,9 +104,9 @@ finally:
         print("     py-bcrypt   (http://www.mindrot.org/projects/py-bcrypt/")
         print("     bcryptor    (https://pypi.python.org/pypi/Bcryptor)")
         print("")
-        imported = True
+        imported = False
 
-if imported is True:
+if imported is False:
     sys.exit(1)
 
 
@@ -115,6 +117,7 @@ key_file = "shusshd-rsa.key"
 state_file = "shussh.db"
 savestate = False
 
+# Global variables
 userdb = dict()
 channels = dict()
 chatQ = Queue()
@@ -127,9 +130,11 @@ if os.path.isfile(state_file):
 class Commands ():
 
     def help(chan):
-        chan.send("\r\nShuSSH Chat Help:\r\n\n")
-        chan.send("/help /?         Displays this documentation\r\n")
-        chan.send("/exit            Exits the chat\r\n")
+        chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
+        chan.send("    /help /?         Displays this documentation\r\n")
+        chan.send("    /who /w          Displays the list of logged in users\r\n")
+        chan.send("    /exit            Exits the chat\r\n\n")
+        return True
     
     def exit(chan):
         username = chan.get_name()
@@ -140,6 +145,14 @@ class Commands ():
         del channels[username]
         print("Connection closed: {:s}:{:d} ({:s})".format(addr[0], addr[1], username))
         exit()
+        return True
+
+    def who(chan):
+        chan.send("\r\n  Users logged in:\r\n")
+        for name in channels.keys():
+            chan.send("    {:s}\r\n".format(name))
+        chan.send("\n")
+        return True
 
 class Connection (paramiko.ServerInterface):
 
@@ -191,15 +204,15 @@ def putQ(message, name=None, time=time.time()):
 def run (command, chan):
     if command == "?":
         command = "help"
+    if command == "w":
+        command = "who"
     if command == "quit":
         command = "exit"
     try:
         rc = getattr(Commands, command)
-        rc(chan)
-        return True
+        return rc(chan)
     except AttributeError:
         return False
-    return False
 
 def decode (char):
     try:
