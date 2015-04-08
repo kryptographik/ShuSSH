@@ -3,15 +3,15 @@
 ShuSHH is a simple chat server that runs over SSH.
 
 ShuSSH Server requirements:
-    - Python version 3.2 or later
-    - docopt (http://docopt.org/)
-    - Paramiko (http://www.paramiko.org/)
-    - Passlib (https://pythonhosted.org/passlib/)
+ - Python version 3.2 or later
+ - docopt (http://docopt.org/)
+ - Paramiko (http://www.paramiko.org/)
+ - Passlib (https://pythonhosted.org/passlib/)
         If your system does not already have a bcrypt backend (e.g. most non BSDs)
         you will also need to install one of these:
-        - bcrypt (http://bcrypt.sourceforge.net/)
-        - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
-        - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
+         - bcrypt (http://bcrypt.sourceforge.net/)
+         - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
+         - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
 
 Once all the dependencies are installed, you simply run shusshd.py:
 
