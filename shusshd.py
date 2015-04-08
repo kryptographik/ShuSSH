@@ -173,6 +173,8 @@ def putQ(message, name=None, time=time.time()):
 def run (command, chan):
     if command == "?":
         command = "help"
+    if command == "quit":
+        command = "exit"
     try:
         rc = getattr(Commands, command)
         rc(chan)
