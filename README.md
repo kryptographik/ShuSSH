@@ -15,7 +15,7 @@ ShuSSH Server requirements:
 
 Once all the dependencies are installed, you simply run shusshd.py:
 
-    > c22@PinkBoxRedeux:~/code/ShuSSH$ sudo python3 shusshd.py 
+    > sudo python3 shusshd.py 
     Starting ShuSSH Daemon...
     Generating host key...
     Saving generated key as shusshd-rsa.key
