@@ -15,6 +15,16 @@ Options:
     -v --version        Display the server version
 
 '''
+from __future__ import print_function
+import sys
+if sys.hexversion <  0x020700F0:
+    print ("Please use python 2.7 or higher.")
+    sys.exit()
+elif sys.hexversion < 0x030000a1:
+    pyV=2
+else:
+    pyV=3
+
 
 VERSION = 0.1
 
@@ -37,13 +47,20 @@ import os
 import pickle
 import socket
 import string
-import sys
 import threading
-import _thread as thread
 import time
 
-from queue import Queue
 from binascii import hexlify
+
+if pyV is 2:
+    from Queue import Queue
+    import thread
+elif pyV is 3:
+    from queue import Queue
+    import _thread as thread
+else:
+    print("Unsupported python version.")
+    sys.exit()
 
 imported = False
 try:
@@ -57,6 +74,8 @@ except ImportError:
 
 try:
     import paramiko
+    if pyV is 3:
+        from paramiko.py3compat import u
 except ImportError:
     print("This program requires paramiko (http://www.paramiko.org/)")
     print("")
@@ -88,7 +107,6 @@ finally:
 if imported is True:
     sys.exit(1)
 
-from paramiko.py3compat import u
 
 # Defaults:
 host_port = 22
@@ -383,7 +401,9 @@ if __name__ == '__main__':
         if savestate is not False:
             print("Saving generated key as {:s}".format(key_file))
             host_key.write_private_key_file(key_file, password=socket.gethostname())
-    keyhash = u(hexlify(host_key.get_fingerprint()))
+    keyhash = hexlify(host_key.get_fingerprint())
+    if pyV is 3:
+        keyhash = u(keyhash)
     print("Host fingerprint: {:s}".format((":".join([keyhash[i:2+i] for i in range(0, len(keyhash), 2)]))))
 
     if args['--log'] is not None:
