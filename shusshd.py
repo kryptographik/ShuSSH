@@ -129,6 +129,7 @@ alias["?"] = "help"
 alias["w"] = "who"
 alias["pass"] = "passwd"
 alias["quit"] = "exit"
+alias["q"] = "exit"
 command_aliases = alias
 
 if os.path.isfile(state_file):
@@ -137,14 +138,15 @@ if os.path.isfile(state_file):
 class Commands ():
 
     def help(chan):
+        """ Displays this documentation """
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        chan.send("    /help /?         Displays this documentation\r\n")
-        chan.send("    /who /w          Displays the list of logged in users\r\n")
-        chan.send("    /passwd          Changes your password\r\n")
-        chan.send("    /exit            Exits the chat\r\n\n")
+        for command in ([ c for c in Commands.__dict__.keys() if not c.startswith("_") ]):
+            chan.send("    {:s}{:s}{:s}\r\n".format(command, " " * (14 - len(command)), getattr(Commands, command).__doc__))
+        chan.send("\n")
         return True
     
     def exit(chan):
+        """ Exits the chat """
         username = chan.get_name()
         addr = chan.getpeername()
         chan.send("\rGoodbye\r\n")
@@ -153,6 +155,7 @@ class Commands ():
         return True
 
     def who(chan):
+        """ Displays the list of logged in users """
         chan.send("\r\n  Users logged in:\r\n")
         for name in channels.keys():
             chan.send("    {:s}\r\n".format(name))
@@ -160,6 +163,7 @@ class Commands ():
         return True
 
     def passwd(chan):
+        """ Changes your password """
         cpasswd = str()
         tries = 0
         while checkpasswd(chan.get_name(), cpasswd) is False:
