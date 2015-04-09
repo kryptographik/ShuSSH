@@ -7,12 +7,11 @@ ShuSHH is a simple chat server that runs over SSH.
  - docopt (http://docopt.org/)
  - Paramiko (http://www.paramiko.org/)
  - Passlib (https://pythonhosted.org/passlib/)
-
-If your system does not already have a bcrypt backend (e.g. most non BSDs)
-you will also need to install one of these:
- - bcrypt (http://bcrypt.sourceforge.net/)
- - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
- - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
+  If your system does not already have a bcrypt backend (e.g. most non BSDs)
+  you will also need to install one of these:
+  - bcrypt (http://bcrypt.sourceforge.net/)
+  - py-bcrypt (http://www.mindrot.org/projects/py-bcrypt/)
+  - Bcryptor (https://pypi.python.org/pypi/Bcryptor)
 
 ## Running the ShuSSH server
 Once all the dependencies are installed, you simply run shusshd.py:
@@ -24,8 +23,8 @@ Once all the dependencies are installed, you simply run shusshd.py:
     Host fingerprint: 35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31
     Listening for connections on port 22...
 
-If you want the server to always be running, I recommend trying the djb
-way (http://cr.yp.to/daemontools.html)
+If you want the server to always be running, I recommend trying [the djb
+way] (http://cr.yp.to/daemontools.html)
 
 If you are not running in ephemeral mode (-e) the server will generate an
 RSA key file in the current directory. Keep this file safe! It is what
