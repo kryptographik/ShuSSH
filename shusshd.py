@@ -137,12 +137,17 @@ if os.path.isfile(state_file):
 
 class Commands ():
 
+    _default_acl = ["help", "quit", "who", "passwd"]
+
     # Documentation is retrieved from the command's docstring,
     # commands without docstrings will not be listed
     def help(chan):
         """ Displays this documentation """
+        user = userdb[chan.get_name()]
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        for command in sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_") ]):
+        commands = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
+        commands = filter(lambda c: c in user['cacl'], commands)
+        for command in commands:
             spaces = " " * (14 - len(command))
             helpdoc = getattr(Commands, command).__doc__
             if helpdoc is not None:
@@ -216,7 +221,11 @@ class Connection (paramiko.ServerInterface):
                 print("-> {:s}".format(username))
                 return paramiko.AUTH_SUCCESSFUL
         else:
-            user = dict(handle=username, secret=password, firstlogin=int(time.time()), lastlogin=None)
+            user = dict(handle=username,
+                        secret=password,
+                        firstlogin=int(time.time()),
+                        lastlogin=None,
+                        cacl=Commands._default_acl)
             userdb[username] = user
             return paramiko.AUTH_FAILED
         return paramiko.AUTH_FAILED
@@ -253,8 +262,13 @@ def putQ(message, name=None, time=time.time()):
     chatQ.put((time, name, message))
 
 def run (command, chan):
+    user = userdb[chan.get_name()]
     if command in command_aliases.keys():
         command = command_aliases[command]
+    if command.startswith("_"):
+        return False
+    if command not in user['cacl']:
+        return False
     try:
         rc = getattr(Commands, command)
         return rc(chan)
