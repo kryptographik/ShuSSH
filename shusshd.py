@@ -47,6 +47,7 @@ else:
 import datetime
 import os
 import pickle
+import random
 import socket
 import string
 import threading
@@ -88,13 +89,6 @@ except ImportError:
 try:
     from passlib.hash import bcrypt_sha256 as bcrypt
     from passlib.exc import MissingBackendError
-except ImportError:
-    print("This program requires passlib (https://pythonhosted.org/passlib/)")
-    print("")
-    print("     Try 'pip install passlib'...")
-    print("")
-    imported = False
-finally:
     try:
         bcrypt.get_backend()
     except MissingBackendError:
@@ -105,6 +99,21 @@ finally:
         print("     bcryptor    (https://pypi.python.org/pypi/Bcryptor)")
         print("")
         imported = False
+except ImportError:
+    print("This program requires passlib (https://pythonhosted.org/passlib/)")
+    print("")
+    print("     Try 'pip install passlib'...")
+    print("")
+    imported = False
+
+try:
+    import psutil
+except ImportError:
+    print("This program requires psutil (https://pypi.python.org/pypi/psutil)")
+    print("")
+    print("     Try 'pip install psutil'...")
+    print("")
+    imported = False
 
 if imported is False:
     sys.exit(1)
@@ -118,10 +127,11 @@ state_file = "shussh.db"
 savestate = False
 
 # Global variables
-userdb = dict()
-channels = dict()
-chatQ = Queue()
-linebuffer = dict()
+userdb = dict()         # A dictionary of user dicts, each filled with fields
+channels = dict()       # A dictionary of channels username->channel object
+chatQ = Queue()         # A queue of things to be chatted, use putQ() to add to it
+linebuffer = dict()     # A dictionary of user's linebuffers username->working line
+command_list = list()   # The list of chat commands
 
 alias = dict()
 # Command aliases
@@ -136,8 +146,15 @@ if os.path.isfile(state_file):
     userdb = pickle.load(open(state_file, "rb"))
 
 class Commands ():
+# These are chat commands that are available to clients
 
+    # The commands in _default_acl are  granted to new users*
     _default_acl = ["help", "quit", "who", "passwd"]
+
+    # *Except any user that is created from localhost gets all the commands:
+    def god(chan):
+        putQ("{:s} is a golden god!".format(chan.get_name()))
+        return True
 
     # Documentation is retrieved from the command's docstring,
     # commands without docstrings will not be listed
@@ -145,8 +162,7 @@ class Commands ():
         """ Displays this documentation """
         user = userdb[chan.get_name()]
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        commands = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
-        commands = filter(lambda c: c in user['cacl'], commands)
+        commands = filter(lambda c: c in user['cacl'], command_list)
         for command in commands:
             spaces = " " * (14 - len(command))
             helpdoc = getattr(Commands, command).__doc__
@@ -196,6 +212,7 @@ class Commands ():
             chan.send("\r\nYour password has been changed.\r\n")
             print("Password changed for {:s}.".format(chan.get_name()))
         return True
+command_list = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
 
 class Connection (paramiko.ServerInterface):
 
@@ -221,12 +238,7 @@ class Connection (paramiko.ServerInterface):
                 print("-> {:s}".format(username))
                 return paramiko.AUTH_SUCCESSFUL
         else:
-            user = dict(handle=username,
-                        secret=password,
-                        firstlogin=int(time.time()),
-                        lastlogin=None,
-                        cacl=Commands._default_acl)
-            userdb[username] = user
+            createuser(username, password)
             return paramiko.AUTH_FAILED
         return paramiko.AUTH_FAILED
 
@@ -250,6 +262,27 @@ def terminate (channel, reason):
         channel.close()
         del channels[username]
         print("Connection closed: {:s}:{:d} ({:s})".format(addr[0], addr[1],username))
+
+def createuser(username, password):
+    cacl = Commands._default_acl
+    user = dict(handle=username,
+            secret=password,
+            firstlogin=int(time.time()),
+            lastlogin=None,
+            cacl=cacl)
+    userdb[username] = user
+
+def powerup(user, ip, port):
+    # This complicated looking code checks to see if the localhost has an outbound net
+    # connection with the ip and port of the connecting user. If it does it grants
+    # the user all chat commands.
+    if ip == "127.0.0.1":
+        ipmatch = [filter((lambda c: ip in c[0]), [ s[3] for s in psutil.net_connections() ])]
+        portmatch = [filter(lambda p: port in p[1], ipmatch)]
+        if len(portmatch) is 1:
+            updateuser(user, 'cacl', command_list)
+            return True
+    return False
 
 def updateuser(user, field, newvalue):
     username = user['handle']
@@ -398,7 +431,13 @@ def chatstream(channels, Q):
 def sendbanner (channel):
     channel.send("ShuSSH Server v{:s}\r\n".format(str(VERSION)))
 
-def connect (remote):
+origin_quotes = ["All of our knowledge originates in our perceptions.",
+                "Don't judge a book by its cover.",
+                "Wake up, Neo...",
+                "There is an eerie stillness in the air.",
+                "You suddenly feel a powerful presence."]
+
+def connect (remote,addr):
 
     t = paramiko.Transport(remote)
     t.add_server_key(host_key)
@@ -433,6 +472,9 @@ def connect (remote):
     else:
         putQ("{:s} has joined.".format(username))
         if user['lastlogin'] == user['firstlogin']:
+            if (powerup(user, addr[0], addr[1])) is True:
+                putQ(random.choice(origin_quotes))
+                print("Godmode enabled for {:s}.".format(username))
             chan.send("Welcome {:s}!\r\n".format(user['handle']))
             chan.send("Type /help for a list of commands.\r\n")
         else:
@@ -445,6 +487,7 @@ def connect (remote):
     channels[username] = chan
     linebuffer[username] = list()
     chat(chan, chatQ, linebuffer[username])
+                
 
 if __name__ == '__main__':
     args = docopt(__doc__)
@@ -514,4 +557,4 @@ if __name__ == '__main__':
             os._exit(1)
         ip, port = str(addr[0]), int(addr[1])
         print("Connection from {:s}:{:d} ".format(ip, port), end="")
-        thread.start_new_thread(connect, (remote,))
+        thread.start_new_thread(connect, (remote,addr))
