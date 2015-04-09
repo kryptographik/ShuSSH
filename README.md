@@ -65,7 +65,7 @@ Then enter the same password twice:
 The username foo is now yours, next time you log in you will only have to
 enter your password once.
 
-## Addendum: Running the server on windows
+### Addendum: Running the server on Windows
 * I haven't tried it
 * Let me know
 
