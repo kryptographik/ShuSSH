@@ -7,6 +7,8 @@ ShuSHH is a simple chat server that runs over SSH.
 
  - docopt (http://docopt.org/)
 
+ - psutil (https://pypi.python.org/pypi/psutil)
+
  - Paramiko (http://www.paramiko.org/)
 
  - Passlib (https://pythonhosted.org/passlib/)
@@ -40,7 +42,7 @@ If you don't want to run the server as root you can run it on a port >= 1024:
     $> python3 shusshd.py -p 1024
     Starting ShuSSH Daemon...
 
-#### Addendum: Running the server on Windows
+#### Addendum: Running the server on Windows/Mac
 * I haven't tried it
 * Let me know
 
