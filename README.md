@@ -27,14 +27,14 @@ Once all the dependencies are installed, simply run shusshd.py:
     Host fingerprint: 35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31
     Listening for connections on port 22...
 
-If you want the server to always be running, I recommend trying [the djb
+If you want the server to always be running, I recommend doing it [the djb
 way] (http://cr.yp.to/daemontools.html).
 
 If you are not running in ephemeral mode (-e) the server will generate an
 RSA key file in the current directory. Keep this file safe! It is what
 verifies the authenticity of your host.
 
-If you don't want to run the server as root you can run it on a port over 1024:
+If you don't want to run the server as root you can run it on a port >= 1024:
 
     $> python3 shusshd.py -p 1024
     Starting ShuSSH Daemon...
@@ -64,5 +64,9 @@ Then enter the same password twice:
 
 The username foo is now yours, next time you log in you will only have to
 enter your password once.
+
+## Addendum: Running the server on windows
+* I haven't tried it
+* Let me know
 
 
