@@ -196,7 +196,7 @@ class Connection (paramiko.ServerInterface):
                 if user['secret'] == password:
                     print("-> {:s} (New user)".format(username))
                     updateuser(user, 'lastlogin', user['firstlogin'])
-                    setpasswd(username, passwd)
+                    setpasswd(username, password)
                     return paramiko.AUTH_SUCCESSFUL
             elif checkpasswd(username, password) is True:
                 print("-> {:s}".format(username))
