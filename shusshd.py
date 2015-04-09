@@ -133,6 +133,7 @@ class Commands ():
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
         chan.send("    /help /?         Displays this documentation\r\n")
         chan.send("    /who /w          Displays the list of logged in users\r\n")
+        chan.send("    /passwd          Changes your password\r\n")
         chan.send("    /exit            Exits the chat\r\n\n")
         return True
     
@@ -140,10 +141,7 @@ class Commands ():
         username = chan.get_name()
         addr = chan.getpeername()
         chan.send("\rGoodbye\r\n")
-        putQ("{:s} has left.".format(username))
-        chan.close()
-        del channels[username]
-        print("Connection closed: {:s}:{:d} ({:s})".format(addr[0], addr[1], username))
+        terminate(chan, "Quit")
         exit()
         return True
 
@@ -152,6 +150,32 @@ class Commands ():
         for name in channels.keys():
             chan.send("    {:s}\r\n".format(name))
         chan.send("\n")
+        return True
+
+    def passwd(chan):
+        cpasswd = str()
+        tries = 0
+        while checkpasswd(chan.get_name(), cpasswd) is False:
+            if tries >= 3:
+                chan.send("\r\nGood luck with that.\r\n")
+                terminate(chan, "Forgot password")
+            tries += 1
+            chan.send("\r\nPlease enter your current password: ")
+            f = chan.makefile('rU')
+            cpasswd = f.readline().strip('\r\n')
+        chan.send("\r\nPlease enter a new password: ")
+        f = chan.makefile('rU')
+        npasswd = f.readline().strip('\r\n')
+        chan.send("\r\nPlease re-enter your new password: ")
+        f = chan.makefile('rU')
+        ncpasswd = f.readline().strip('\r\n')
+        if npasswd != ncpasswd:
+            chan.send("\r\nPasswords do not match.")
+            chan.send("\r\nYour password has NOT been changed.\r\n")
+        else:
+            setpasswd(chan.get_name(), npasswd) 
+            chan.send("\r\nYour password has been changed.\r\n")
+            print("Password changed for {:s}.".format(chan.get_name()))
         return True
 
 class Connection (paramiko.ServerInterface):
@@ -172,9 +196,9 @@ class Connection (paramiko.ServerInterface):
                 if user['secret'] == password:
                     print("-> {:s} (New user)".format(username))
                     updateuser(user, 'lastlogin', user['firstlogin'])
-                    updateuser(user, 'secret', bcrypt.encrypt(password, rounds=12))
+                    setpasswd(username, passwd)
                     return paramiko.AUTH_SUCCESSFUL
-            elif bcrypt.verify(password, user['secret']) is True:
+            elif checkpasswd(username, password) is True:
                 print("-> {:s}".format(username))
                 return paramiko.AUTH_SUCCESSFUL
         else:
@@ -190,6 +214,20 @@ class Connection (paramiko.ServerInterface):
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
         return True
 
+def checkpasswd (username, password):
+    user = userdb[username]
+    return bcrypt.verify(password, user['secret'])
+
+def setpasswd (username, password):
+    updateuser(userdb[username], 'secret', bcrypt.encrypt(password, rounds=12))
+
+def terminate (channel, reason):
+        username = channel.get_name()
+        putQ("{:s} has left. ({:s})".format(username, reason))
+        channel.close()
+        del channels[username]
+        print("Connection closed: {:s}:{:d} ({:s})".format(addr[0], addr[1],username))
+
 def updateuser(user, field, newvalue):
     username = user['handle']
     user[field] = newvalue
@@ -199,7 +237,6 @@ def updateuser(user, field, newvalue):
 
 def putQ(message, name=None, time=time.time()):
     chatQ.put((time, name, message))
-
 
 def run (command, chan):
     if command == "?":
@@ -350,7 +387,7 @@ def connect (remote):
 
     chan = t.accept(10)
 
-    conn.event.wait(3)
+    conn.event.wait(5)
     if not conn.event.is_set():
         print("Client is not interactive, closing remote connection")
         t.close()
