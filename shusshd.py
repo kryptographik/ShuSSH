@@ -281,6 +281,27 @@ class Commands ():
         chan.send("\n")
         return True
 
+    def server(chan, args=None):
+        """ Displays information about the chat server """
+        if args is None:
+            chan.send("\rSorry, this doesn't do anything yet.\r\n")
+        elif "god" not in userdb[chan.get_name()]['cacl']:
+            raise TypeError("Ah ah ah, you didn't say the magic word...")
+        elif args[0] == "reset":
+            Commands._server_reset()
+
+    def _server_reset():
+        # I stole this method from CherryPy
+        putQ("The server is respawning. It will be back up momentarily.")
+        time.sleep(.5)
+        args = sys.argv[:]
+        print("\nRestarting: {:s}".format(" ".join(args)))
+        args.insert(0, sys.executable)
+        if sys.platform == "win32":
+            args = ["\"{:s}\"".format(arg) for arg in args]
+        os.execv(sys.executable, args)
+                
+
 command_list = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
 
 class Connection (paramiko.ServerInterface):
