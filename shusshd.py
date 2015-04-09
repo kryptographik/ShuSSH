@@ -138,6 +138,8 @@ class Commands ():
 
     def help(chan):
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
+        for [(lambda c: c if not c.startswith("_")) for command in Commands.__dict__]:
+            print(command)
         chan.send("    /help /?         Displays this documentation\r\n")
         chan.send("    /who /w          Displays the list of logged in users\r\n")
         chan.send("    /passwd          Changes your password\r\n")
