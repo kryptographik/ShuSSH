@@ -158,10 +158,11 @@ class Commands ():
         return True
 
     # Documentation is retrieved from the command's docstring,
-    # commands without docstrings will not be listed
+    # commands without docstrings will not be listed in /help
+    # If you pass help an argument it will attempt to get more
+    # information from the command definition's _syntax_ attribute
     def help(chan, args=None):
         """ Displays this documentation """
-
         def helpline(chan, command):
             spaces = " " * (14 - len(command))
             helpdoc = getattr(Commands, command).__doc__
@@ -170,13 +171,47 @@ class Commands ():
             else:
                 return None
 
+        def nohelp(chan, command):
+            chan.send("\rNo help entry for {:s}\r\n".format(command))
+
+        def formatter(syntax, usage):
+            help = "\r?\r\n? {:s}\r\n".format(syntax)
+            if usage is None:
+                return help
+            usage = usage.lstrip()
+            linelen = 0
+            line = list()
+            for word in usage.split(" "):
+                linelen += len(word)
+                if linelen > 40:
+                    linelen = 0
+                    help += "?   {:s}\r\n".format(" ".join(line))
+                    line = [word]
+                else:
+                    line.append(word)
+            help += "?\r\n"
+            return help
+
         user = userdb[chan.get_name()]
         if args is not None:
-            halp = helpline(chan, args[0])
-            if args[0] not in user['cacl'] or halp is None:
-                chan.send("\rNo help entry for {:s}\r\n".format(args[0]))
-            else:
-                chan.send("\r  {:s}\r\n".format(halp))
+            command = args[0]
+            if command not in user['cacl']:
+                nohelp(chan, command)
+                return True
+            halp = helpline(chan, command)
+            try:
+                syntax = getattr(Commands, command)._syntax_
+            except Exception:
+                if halp is None:
+                    nohelp(chan, command)
+                else:
+                    chan.send("\r  {:s}\r\n".format(halp))
+                return True
+            try:
+                usage = getattr(Commands, command)._usage_
+            except:
+                usage = None
+            chan.send(formatter(syntax, usage))
             return True
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
         commands = filter(lambda c: c in user['cacl'], command_list)
@@ -186,6 +221,11 @@ class Commands ():
                 chan.send("\r    {:s}\r\n".format(halp))
         chan.send("\n")
         return True
+    help._syntax_ = "/help [command]"
+    help._usage_  = " The help command gives you information about the"
+    help._usage_ += " commands you can run inside your chat session. When"
+    help._usage_ += " run by itself /help returns a list of available commands"
+    help._usage_ += " or you can specifiy a command for more detailed information."
     
     def quit(chan):
         """ Exits the chat """
