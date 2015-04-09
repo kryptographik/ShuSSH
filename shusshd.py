@@ -128,8 +128,8 @@ alias = dict()
 alias["?"] = "help"
 alias["w"] = "who"
 alias["pass"] = "passwd"
-alias["quit"] = "exit"
-alias["q"] = "exit"
+alias["q"] = "quit"
+alias["exit"] = "quit"
 command_aliases = alias
 
 if os.path.isfile(state_file):
@@ -137,15 +137,20 @@ if os.path.isfile(state_file):
 
 class Commands ():
 
+    # Documentation is retrieved from the command's docstring,
+    # commands without docstrings will not be listed
     def help(chan):
         """ Displays this documentation """
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
         for command in sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_") ]):
-            chan.send("    /{:s}{:s}{:s}\r\n".format(command, " " * (14 - len(command)), getattr(Commands, command).__doc__))
+            spaces = " " * (14 - len(command))
+            helpdoc = getattr(Commands, command).__doc__
+            if helpdoc is not None:
+                chan.send("    /{:s}{:s}{:s}\r\n".format(command, spaces, helpdoc))
         chan.send("\n")
         return True
     
-    def exit(chan):
+    def quit(chan):
         """ Exits the chat """
         username = chan.get_name()
         addr = chan.getpeername()
