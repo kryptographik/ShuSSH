@@ -20,14 +20,12 @@ ShuSHH is a simple chat server that runs over SSH.
 ## Running the ShuSSH server
 Once all the dependencies are installed, simply run shusshd.py:
 
-```
-> #> python3 shusshd.py
-> Starting ShuSSH Daemon...
-> Generating host key...
-> Saving generated key as shusshd-rsa.key
-> `Host fingerprint: `**`35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31`**
-> Listening for connections on port 22...
-```
+    #> python3 shusshd.py
+    Starting ShuSSH Daemon...
+    Generating host key...
+    Saving generated key as shusshd-rsa.key
+    Host fingerprint: 35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31
+    Listening for connections on port 22...
 
 If you want the server to always be running, I recommend trying [the djb
 way] (http://cr.yp.to/daemontools.html).
