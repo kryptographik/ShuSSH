@@ -195,6 +195,10 @@ class Commands ():
         user = userdb[chan.get_name()]
         if args is not None:
             command = args[0]
+            if command.startswith("/"):
+                command = command.lstrip("/")
+            if command in command_aliases.keys():
+                command = command_aliases[command]
             if command not in user['cacl']:
                 nohelp(chan, command)
                 return True
@@ -205,7 +209,7 @@ class Commands ():
                 if halp is None:
                     nohelp(chan, command)
                 else:
-                    chan.send("\r  {:s}\r\n".format(halp))
+                    chan.send("\r? {:s}\r\n".format(halp))
                 return True
             try:
                 usage = getattr(Commands, command)._usage_
@@ -380,7 +384,7 @@ def run (command, chan):
     except TypeError:
         chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
         time.sleep(.4)
-        run("help {:s}".format(command), chan)
+        chan.send("? Try typing just \"/{:s}\"\r\n".format(command))
         return True
 
 def decode (char):
