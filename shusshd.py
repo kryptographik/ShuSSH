@@ -152,8 +152,6 @@ class Commands ():
     
     def quit(chan):
         """ Exits the chat """
-        username = chan.get_name()
-        addr = chan.getpeername()
         chan.send("\rGoodbye\r\n")
         terminate(chan, "Quit")
         exit()
