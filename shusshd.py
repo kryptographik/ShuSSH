@@ -123,20 +123,23 @@ channels = dict()
 chatQ = Queue()
 linebuffer = dict()
 
+# Command aliases
+alias = dict()
+alias["?"] = "help"
+alias["w"] = "who"
+alias["pass"] = "passwd"
+alias["quit"] = "exit"
+command_aliases = alias
 
 if os.path.isfile(state_file):
     userdb = pickle.load(open(state_file, "rb"))
 
 class Commands ():
 
-    aliases = dict()
-    aliases["?"] = "help"
-    aliases["w"] = "who"
-    aliases["pass"] = "passwd"
-    aliases["quit"] = "exit"
-
     def help(chan):
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
+        for command in [(lambda c: c.startswith("_")) for c in command_aliases.keys()]:
+                print(command)
         chan.send("    /help /?         Displays this documentation\r\n")
         chan.send("    /who /w          Displays the list of logged in users\r\n")
         chan.send("    /passwd          Changes your password\r\n")
@@ -245,8 +248,8 @@ def putQ(message, name=None, time=time.time()):
     chatQ.put((time, name, message))
 
 def run (command, chan):
-    if command in Commands.aliases.keys():
-        command = Commands.aliases[command]
+    if command in command_aliases.keys():
+        command = command_aliases[command]
     try:
         rc = getattr(Commands, command)
         return rc(chan)
