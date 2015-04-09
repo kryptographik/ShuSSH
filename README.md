@@ -34,10 +34,15 @@ If you are not running in ephemeral mode (-e) the server will generate an
 RSA key file in the current directory. Keep this file safe! It is what
 verifies the authenticity of your host.
 
+#### Addendum: Running a non-privileged server instance
 If you don't want to run the server as root you can run it on a port >= 1024:
 
     $> python3 shusshd.py -p 1024
     Starting ShuSSH Daemon...
+
+#### Addendum: Running the server on Windows
+* I haven't tried it
+* Let me know
 
 ## Connecting to the server
 Once your server is running you can log into it with any ssh client:
@@ -64,9 +69,5 @@ Then enter the same password twice:
 
 The username foo is now yours, next time you log in you will only have to
 enter your password once.
-
-### Addendum: Running the server on Windows
-* I haven't tried it
-* Let me know
 
 
