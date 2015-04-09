@@ -129,6 +129,12 @@ if os.path.isfile(state_file):
 
 class Commands ():
 
+    aliases = dict()
+    aliases["?"] = "help"
+    aliases["w"] = "who"
+    aliases["pass"] = "passwd"
+    aliases["quit"] = "exit"
+
     def help(chan):
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
         chan.send("    /help /?         Displays this documentation\r\n")
@@ -239,12 +245,8 @@ def putQ(message, name=None, time=time.time()):
     chatQ.put((time, name, message))
 
 def run (command, chan):
-    if command == "?":
-        command = "help"
-    if command == "w":
-        command = "who"
-    if command == "quit":
-        command = "exit"
+    if command in Commands.aliases.keys():
+        command = Commands.aliases[command]
     try:
         rc = getattr(Commands, command)
         return rc(chan)
@@ -382,8 +384,11 @@ def connect (remote):
     try:
         t.start_server(server=conn)
     except paramiko.SSHException as e:
-        print("SSH negotiation failure: {:s}".format(str(e)))
+        print("-> SSH negotiation failure: {:s}".format(str(e)))
         return False
+    except EOFError as e:
+        print("-> SSH negotiation failure: Host fingerprint mismatch?".format(str(e)))
+        
 
     chan = t.accept(10)
 
