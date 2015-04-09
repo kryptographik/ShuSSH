@@ -24,7 +24,7 @@ Once all the dependencies are installed, simply run shusshd.py:
     Starting ShuSSH Daemon...
     Generating host key...
     Saving generated key as shusshd-rsa.key
-    Host fingerprint: **35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31**
+    Host fingerprint: 35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31
     Listening for connections on port 22...
 
 If you want the server to always be running, I recommend trying [the djb
@@ -44,19 +44,19 @@ Once your server is running you can log into it with any ssh client:
 
     $> ssh localhost
     The authenticity of host 'localhost (127.0.0.1)' can't be established.
-    RSA key fingerprint is **35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31**.
+    RSA key fingerprint is 35:d8:00:c0:73:fc:8f:32:db:05:b7:0c:7e:a2:b2:31.
     Are you sure you want to continue connecting (yes/no)?
 
 Verify that the fingerprint matches that of the host:
 
-    Are you sure you want to continue connecting (yes/no)? *yes*
+    Are you sure you want to continue connecting (yes/no)? yes
     Warning: Permanently added 'localhost' (RSA) to the list of known hosts.
 
 Then enter the same password twice:
 
-    foo@localhost's password: *test*
+    foo@localhost's password: test
     Permission denied, please try again.
-    foo@localhost's password: *test*
+    foo@localhost's password: test
     ShuSSH Server v0.1
     Welcome foo!
     Type /help for a list of commands.
