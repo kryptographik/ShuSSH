@@ -154,20 +154,36 @@ class Commands ():
     # *Except any user that is created from localhost gets all the commands:
     def god(chan):
         putQ("{:s} is a golden god!".format(chan.get_name()))
+        updateuser(userdb[chan.get_name()], 'cacl', command_list)
         return True
 
     # Documentation is retrieved from the command's docstring,
     # commands without docstrings will not be listed
-    def help(chan):
+    def help(chan, args=None):
         """ Displays this documentation """
-        user = userdb[chan.get_name()]
-        chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        commands = filter(lambda c: c in user['cacl'], command_list)
-        for command in commands:
+
+        def helpline(chan, command):
             spaces = " " * (14 - len(command))
             helpdoc = getattr(Commands, command).__doc__
             if helpdoc is not None:
-                chan.send("    /{:s}{:s}{:s}\r\n".format(command, spaces, helpdoc))
+                return("/{:s}{:s}{:s}".format(command, spaces, helpdoc))
+            else:
+                return None
+
+        user = userdb[chan.get_name()]
+        if args is not None:
+            halp = helpline(chan, args[0])
+            if args[0] not in user['cacl'] or halp is None:
+                chan.send("\rNo help entry for {:s}\r\n".format(args[0]))
+            else:
+                chan.send("\r  {:s}\r\n".format(halp))
+            return True
+        chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
+        commands = filter(lambda c: c in user['cacl'], command_list)
+        for command in commands:
+            halp = helpline(chan, command)
+            if halp is not None:
+                chan.send("\r    {:s}\r\n".format(halp))
         chan.send("\n")
         return True
     
@@ -212,6 +228,15 @@ class Commands ():
             chan.send("\r\nYour password has been changed.\r\n")
             print("Password changed for {:s}.".format(chan.get_name()))
         return True
+
+    def users(chan):
+        """ Displays the list of all existing users """
+        chan.send("\r\n  Users:\r\n")
+        for name in userdb.keys():
+            chan.send("    {:s}\r\n".format(name))
+        chan.send("\n")
+        return True
+
 command_list = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
 
 class Connection (paramiko.ServerInterface):
@@ -296,6 +321,11 @@ def putQ(message, name=None, time=time.time()):
 
 def run (command, chan):
     user = userdb[chan.get_name()]
+    args = None
+    tc = command.split(" ")
+    if len(tc) > 1:
+        command = tc[0]
+        args = tc[1:]
     if command in command_aliases.keys():
         command = command_aliases[command]
     if command.startswith("_"):
@@ -304,9 +334,14 @@ def run (command, chan):
         return False
     try:
         rc = getattr(Commands, command)
-        return rc(chan)
+        return (rc(chan) if args is None else rc(chan, args))
     except AttributeError:
         return False
+    except TypeError:
+        chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
+        time.sleep(.4)
+        run("help {:s}".format(command), chan)
+        return True
 
 def decode (char):
     try:
