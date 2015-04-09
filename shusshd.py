@@ -145,8 +145,8 @@ class Commands ():
         """ Displays this documentation """
         user = userdb[chan.get_name()]
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        commands = ([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
-        commands = sorted(filter(lambda c: c in user['cacl'], commands))
+        commands = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
+        commands = filter(lambda c: c in user['cacl'], commands)
         for command in commands:
             spaces = " " * (14 - len(command))
             helpdoc = getattr(Commands, command).__doc__
