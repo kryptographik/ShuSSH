@@ -140,8 +140,8 @@ class Commands ():
     def help(chan):
         """ Displays this documentation """
         chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        for command in ([ c for c in Commands.__dict__.keys() if not c.startswith("_") ]):
-            chan.send("    {:s}{:s}{:s}\r\n".format(command, " " * (14 - len(command)), getattr(Commands, command).__doc__))
+        for command in sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_") ]):
+            chan.send("    /{:s}{:s}{:s}\r\n".format(command, " " * (14 - len(command)), getattr(Commands, command).__doc__))
         chan.send("\n")
         return True
     
@@ -429,7 +429,6 @@ def connect (remote):
     linebuffer[username] = list()
     chat(chan, chatQ, linebuffer[username])
 
-
 if __name__ == '__main__':
     args = docopt(__doc__)
 
@@ -491,8 +490,11 @@ if __name__ == '__main__':
             remote, addr = sock.accept()
         except Exception as e:
             print("Could not complete connection: {:s}".format(str(e)))
+        except KeyboardInterrupt:
+            print("\n\nAborting...")
+            putQ("My mind is going, I can feel it...")
+            time.sleep(.5)
+            os._exit(1)
         ip, port = str(addr[0]), int(addr[1])
-        print("Connection from {:s}:{:d}".format(ip, port), end="")
+        print("Connection from {:s}:{:d} ".format(ip, port), end="")
         thread.start_new_thread(connect, (remote,))
-
-
