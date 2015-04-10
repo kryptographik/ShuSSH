@@ -273,6 +273,83 @@ class Commands ():
             print("Password changed for {:s}.".format(chan.get_name()))
         return True
 
+    def _printpermissions(chan, username):
+        user = userdb[username]
+        chan.send("\r{:s}'s powers: {:s}\r\n".format(username, ", ".join(user['cacl'])))
+
+    def grant(chan, args):
+        """ Allows you to bestow special powers upon your bretheren """
+        user = userdb[chan.get_name()]
+        target = args[0]
+        try:
+            targetuser = userdb[target]
+        except KeyError:
+            targetuser = userdb[chan.get_name()]
+        if target == chan.get_name():
+            run('help', chan)
+            return True
+        if target in channels.keys():
+            if len(args) is 1:
+                Commands._printpermissions(chan, target)
+                if "gold" not in user['cacl'] and "silver" not in user['cacl']:
+                    channels[target].send("\r * {:s} looks at you funny and takes notes on a clipboard.\r\n".format(chan.get_name()))
+                return True
+            for permission in args[1:]:
+                if permission not in user['cacl']:
+                    chan.send("\rYou have no knowledge of alchemy!\r\n")
+                    return True
+                if permission in metals:
+                    chan.send("\rYou can't give away prestigie!\r\n")
+                if permission == "god":
+                    if "gold" in user['cacl']:
+                        updateuser(targetuser, 'cacl', union(["silver"], targetuser['cacl']))
+                    elif "silver" in user['cacl']:
+                        updateuser(targetuser, 'cacl', union(["bronze"], targetuser['cacl']))
+                    else:
+                        chan.send("\rGods are born, not made.\r\n")
+                        return True
+                    channels[target].send("\r * Wake up Neo ...\r\n")
+            updateuser(targetuser, 'cacl', union(args[1:], targetuser['cacl']))
+            Commands._printpermissions(chan, target)
+            return True
+        else:
+            chan.send("\r{:s} isn't here!\r\n".format(target))
+        return True
+
+    def revoke(chan, args):
+        """ Allows you to cruelly rescind powers from a hapless victim """
+        user = userdb[chan.get_name()]
+        target = args[0]
+        try:
+            targetuser = userdb[target]
+        except KeyError:
+            targetuser = userdb[chan.get_name()]
+        haystack = channels.keys()
+        if "gold" in user['cacl'] or "silver" in user['cacl']:
+            haystack = userdb.keys()
+        if target in haystack:
+            if len(args) is 1:
+                chan.send("\rRevoke what?\r\n")
+                return True
+            for permission in args[1:]:
+                if permission not in user['cacl']:
+                    chan.send("\rImpressive! But you are not a Jedi yet!\r\n")
+                    return True
+            if target == chan.get_name():
+                if "gold" in user['cacl']:
+                    chan.send("\rWhatever you say, boss.\r\n")
+                else:
+                    chan.send("\rSo be it, Jedi...\r\n")
+            else:
+                if "gold" not in user['cacl']:
+                    channels[target].send("\r * {:s} looks at you disapprovingly.\r\n".format(chan.get_name()))
+            updateuser(targetuser, 'cacl', negunion(args[1:], targetuser['cacl']))
+            Commands._printpermissions(chan, target)
+            return True
+        else:
+            chan.send("\rCouldn't find user: {:s}.\r\n".format(target))
+        return True
+
     def users(chan):
         """ Displays the list of all existing users """
         chan.send("\r\n  Users:\r\n")
@@ -282,6 +359,7 @@ class Commands ():
         return True
 
     def kick(chan, args):
+        """ Allows you to kick offensive users """
         if args[0] in channels.keys():
             channel = channels[args[0]]
             msg = "You're fired!"
@@ -326,6 +404,7 @@ class Commands ():
                 
 
 command_list = sorted([ c for c in Commands.__dict__.keys() if not c.startswith("_")])
+metals = ["gold", "silver", "bronze", "copper", "tin"] # These are tokens for various acl configurations
 
 class Connection (paramiko.ServerInterface):
 
@@ -393,7 +472,7 @@ def powerup(user, ip, port):
         ipmatch = [filter((lambda c: ip in c[0]), [ s[3] for s in psutil.net_connections() ])]
         portmatch = [filter(lambda p: port in p[1], ipmatch)]
         if len(portmatch) is 1:
-            updateuser(user, 'cacl', command_list)
+            updateuser(user, 'cacl', command_list + ["gold"])
             return True
     return False
 
@@ -426,7 +505,8 @@ def run (command, chan):
         return False
     try:
         return (rc(chan) if args is None else rc(chan, args))
-    except TypeError:
+    except TypeError as e:
+        print(e)    # Debugging
         if args:
             if command == "god":
                 return False
@@ -445,6 +525,17 @@ def decode (char):
     except UnicodeDecodeError:
         chard = char.decode("cp437")
     return chard
+
+def union(l1, l2):
+    lu = l1 + l2
+    k = {}
+    for i in lu:
+        k[i] = 1
+    return list(k.keys())
+
+def negunion(l1, l2):
+    return list(filter(lambda x: x not in l1, l2))
+        
 
 def timeish (timedelta):
     seconds = minutes = hours = days = weeks = months = years = decades = 0
