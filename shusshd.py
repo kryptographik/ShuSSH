@@ -281,6 +281,23 @@ class Commands ():
         chan.send("\n")
         return True
 
+    def kick(chan, args):
+        if args[0] in channels.keys():
+            channel = channels[args[0]]
+            msg = "You're fired!"
+            if len(args[1:]) > 0:
+                msg = " ".join(args[1:])
+            channel.send("\r *** {:s} ***\r\n".format(msg))
+            terminate(channel, "Kicked by {:s}".format(chan.get_name()))
+        else:
+            chan.send("\r{:s} is not online.\r\n".format(args[0]))
+        return True
+    kick._syntax_ = "/kick <username> [message]"
+    kick._usage_  = " Kick allows you to remove disruptive members from the"
+    kick._usage_ += " chat. You can include an optional message that will"
+    kick._usage_ += " be displayed to the user before the connection is"
+    kick._usage_ += " closed."
+
     def server(chan, args=None):
         """ Displays information about the chat server """
         if args is None:
@@ -289,6 +306,12 @@ class Commands ():
             raise TypeError("Ah ah ah, you didn't say the magic word...")
         elif args[0] == "reset":
             Commands._server_reset()
+        elif args[0] == "shutdown":
+            print("Server is shutting down at {:s}'s request.".format(chan.get_name()))
+            putQ("{:s} has left the building.".format(socket.gethostname()))
+            time.sleep(.5)
+            os._exit(0)
+        return True
 
     def _server_reset():
         # I stole this method from CherryPy
@@ -399,13 +422,19 @@ def run (command, chan):
         return False
     try:
         rc = getattr(Commands, command)
-        return (rc(chan) if args is None else rc(chan, args))
     except AttributeError:
         return False
+    try:
+        return (rc(chan) if args is None else rc(chan, args))
     except TypeError:
-        chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
-        time.sleep(.4)
-        chan.send("? Try typing just \"/{:s}\"\r\n".format(command))
+        if args:
+            chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
+            time.sleep(.4)
+            chan.send("? Try typing just \"/{:s}\"\r\n".format(command))
+        else:
+            chan.send("\r> /{:s} <- Syntax error\r\n".format(command))
+            time.sleep(.4)
+            Commands.help(chan, command)
         return True
 
 def decode (char):
