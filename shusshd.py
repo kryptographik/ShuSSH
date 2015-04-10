@@ -428,6 +428,8 @@ def run (command, chan):
         return (rc(chan) if args is None else rc(chan, args))
     except TypeError:
         if args:
+            if command == "god":
+                return False
             chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
             time.sleep(.4)
             chan.send("? Try typing just \"/{:s}\"\r\n".format(command))
@@ -448,16 +450,16 @@ def timeish (timedelta):
     seconds = minutes = hours = days = weeks = months = years = decades = 0
     seconds = int(timedelta.total_seconds())
     time = "{:d} seconds".format(seconds)
-    if seconds > 90:
+    if seconds > 120:
         minutes = int(seconds / 60)
         time = "{:d} minutes".format(minutes)
-    if minutes >= 60:
+    if minutes >= 120:
         hours = int(minutes / 60)
         time = "{:d} hours".format(hours)
-    if hours >= 24:
+    if hours >= 48:
         days = int(hours / 24)
         time = "{:d} days".format(days)
-    if days >= 7:
+    if days >= 14:
         weeks = int(days / 7)
         time = "{:d} weeks".format(weeks)
     if weeks >= 4:
