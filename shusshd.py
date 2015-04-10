@@ -153,8 +153,37 @@ class Commands ():
 
     # *Except any user that is created from localhost gets all the commands:
     def god(chan):
-        putQ("{:s} is a golden god!".format(chan.get_name()))
-        updateuser(userdb[chan.get_name()], 'cacl', command_list)
+        user = userdb[chan.get_name()]
+        silence=O=0
+        if "tin" in user['cacl']:
+            newacl = Commands._default_acl + ["tin"]
+            silence = "tin"
+        if "copper" in user['cacl']:
+            newacl = union(["copper", "god"], user['cacl'])
+            silence = "copper"
+        if "bronze" in user['cacl']:
+            if intersect(user['cacl'], negunion(["bronze"], metals)) is True:
+                newacl = union(["kick", "ban"], user['cacl'])
+            else:
+                newacl = union(["kick", "ban"], Commands._default_acl + ["bronze", "god"])
+            silence = "bronze"
+            O+=1
+        if "silver" in user['cacl']:
+            newacl = union(negunion(["server"], command_list), user['cacl'])
+            silence = "silver"
+            O+=1
+        if "gold" in user['cacl']:
+            newacl = union(command_list, user['cacl'])
+            silence = "golden"
+            O+=1
+        if O is 3:
+            silence = "\bn Olympic"
+        if silence is 0:
+            updateuser(user, 'cacl', list())
+        else:
+            updateuser(user, 'cacl', newacl)
+            
+        putQ("{:s} is a {:s} god!".format(chan.get_name(), silence))
         return True
 
     # Documentation is retrieved from the command's docstring,
@@ -278,7 +307,7 @@ class Commands ():
         chan.send("\r{:s}'s powers: {:s}\r\n".format(username, ", ".join(user['cacl'])))
 
     def grant(chan, args):
-        """ Allows you to bestow special powers upon your bretheren """
+        """ Allows you to bestow special powers upon your peers """
         user = userdb[chan.get_name()]
         target = args[0]
         try:
@@ -292,17 +321,23 @@ class Commands ():
             if len(args) is 1:
                 Commands._printpermissions(chan, target)
                 if "gold" not in user['cacl'] and "silver" not in user['cacl']:
-                    channels[target].send("\r * {:s} looks at you funny and takes notes on a clipboard.\r\n".format(chan.get_name()))
+                    act = "looks at you funny and takes notes on a clipboard."
+                    channels[target].send("\r * {:s} {:s}\r\n".format(chan.get_name(), act))
                 return True
             for permission in args[1:]:
                 if permission not in user['cacl']:
                     chan.send("\rYou have no knowledge of alchemy!\r\n")
                     return True
                 if permission in metals:
-                    chan.send("\rYou can't give away prestigie!\r\n")
+                    if "gold" not in user['cacl'] or "god" not in targetuser['cacl']:
+                        chan.send("\rYou can't grant prestige!\r\n")
+                        return True
                 if permission == "god":
                     if "gold" in user['cacl']:
-                        updateuser(targetuser, 'cacl', union(["silver"], targetuser['cacl']))
+                        if intersect(targetuser['cacl'], metals) is True:
+                            updateuser(targetuser, 'cacl', union(["silver"], targetuser['cacl']))
+                        else:
+                            updateuser(targetuser, 'cacl', union(["tin"], targetuser['cacl']))
                     elif "silver" in user['cacl']:
                         updateuser(targetuser, 'cacl', union(["bronze"], targetuser['cacl']))
                     else:
@@ -526,6 +561,9 @@ def decode (char):
         chard = char.decode("cp437")
     return chard
 
+def intersect(l1, l2):
+    return bool(set(l1) & set(l2))
+
 def union(l1, l2):
     lu = l1 + l2
     k = {}
@@ -655,7 +693,6 @@ def sendbanner (channel):
 
 origin_quotes = ["All of our knowledge originates in our perceptions.",
                 "Don't judge a book by its cover.",
-                "Wake up, Neo...",
                 "There is an eerie stillness in the air.",
                 "You suddenly feel a powerful presence."]
 
