@@ -154,7 +154,7 @@ class Commands ():
     # *Except any user that is created from localhost gets all the commands:
     def god(chan):
         user = userdb[chan.get_name()]
-        silence=O=0
+        O=silence=0
         if "tin" in user['cacl']:
             newacl = Commands._default_acl + ["tin"]
             silence = "tin"
@@ -190,15 +190,15 @@ class Commands ():
     # commands without docstrings will not be listed in /help
     # If you pass help an argument it will attempt to get more
     # information from the command definition's _syntax_ attribute
-    def help(chan, args=None):
+    def help(chan, args=None, justsyntax=False):
         """ Displays this documentation """
         def helpline(chan, command):
             spaces = " " * (14 - len(command))
-            helpdoc = getattr(Commands, command).__doc__
-            if helpdoc is not None:
-                return("/{:s}{:s}{:s}".format(command, spaces, helpdoc))
-            else:
+            try:
+                helpdoc = getattr(Commands, command).__doc__
+            except:
                 return None
+            return("/{:s}{:s}{:s}".format(command, spaces, helpdoc))
 
         def nohelp(chan, command):
             chan.send("\rNo help entry for {:s}\r\n".format(command))
@@ -206,7 +206,7 @@ class Commands ():
         def formatter(syntax, usage):
             help = "\r?\r\n? {:s}\r\n".format(syntax)
             if usage is None:
-                return help
+                return("\r? Syntax: {:s}\r\n   Try '/help {:s}' for more details.\r\n".format(syntax, syntax.split(" ")[0].lstrip("/")))
             usage = usage.lstrip()
             linelen = 0
             line = list()
@@ -218,12 +218,18 @@ class Commands ():
                     line = [word]
                 else:
                     line.append(word)
+            help += "?   {:s}\r\n".format(" ".join(line))
             help += "?\r\n"
             return help
 
         user = userdb[chan.get_name()]
+        
         if args is not None:
-            command = args[0]
+            if justsyntax is True:
+                command = args
+            else:                   # Stupid, right?
+                command = args[0]
+            print(command)
             if command.startswith("/"):
                 command = command.lstrip("/")
             if command in command_aliases.keys():
@@ -232,9 +238,10 @@ class Commands ():
                 nohelp(chan, command)
                 return True
             halp = helpline(chan, command)
+            print(halp)
             try:
                 syntax = getattr(Commands, command)._syntax_
-            except Exception:
+            except AttributeError:
                 if halp is None:
                     nohelp(chan, command)
                 else:
@@ -242,7 +249,9 @@ class Commands ():
                 return True
             try:
                 usage = getattr(Commands, command)._usage_
-            except:
+            except AttributeError:
+                usage = None
+            if justsyntax is True:
                 usage = None
             chan.send(formatter(syntax, usage))
             return True
@@ -302,9 +311,10 @@ class Commands ():
             print("Password changed for {:s}.".format(chan.get_name()))
         return True
 
-    def _printpermissions(chan, username):
+    def _printpermissions(chan, username, new=[]):
         user = userdb[username]
-        chan.send("\r{:s}'s powers: {:s}\r\n".format(username, ", ".join(user['cacl'])))
+        commands = ", ".join(negunion(new, user['cacl'])+list("+{:s}".format(n) for n in new))
+        chan.send("\rUser commands for {:s}: {:s}\r\n".format(username, commands))
 
     def grant(chan, args):
         """ Allows you to bestow special powers upon your peers """
@@ -317,39 +327,44 @@ class Commands ():
         if target == chan.get_name():
             run('help', chan)
             return True
-        if target in channels.keys():
-            if len(args) is 1:
-                Commands._printpermissions(chan, target)
-                if "gold" not in user['cacl'] and "silver" not in user['cacl']:
-                    act = "looks at you funny and takes notes on a clipboard."
-                    channels[target].send("\r * {:s} {:s}\r\n".format(chan.get_name(), act))
+        if target not in channels.keys():
+            if "users" not in user['cacl']:
+                chan.send("\r{:s} isn't here!\r\n".format(target))
                 return True
-            for permission in args[1:]:
-                if permission not in user['cacl']:
-                    chan.send("\rYou have no knowledge of alchemy!\r\n")
-                    return True
-                if permission in metals:
-                    if "gold" not in user['cacl'] or "god" not in targetuser['cacl']:
-                        chan.send("\rYou can't grant prestige!\r\n")
-                        return True
-                if permission == "god":
-                    if "gold" in user['cacl']:
-                        if intersect(targetuser['cacl'], metals) is True:
-                            updateuser(targetuser, 'cacl', union(["silver"], targetuser['cacl']))
-                        else:
-                            updateuser(targetuser, 'cacl', union(["tin"], targetuser['cacl']))
-                    elif "silver" in user['cacl']:
-                        updateuser(targetuser, 'cacl', union(["bronze"], targetuser['cacl']))
-                    else:
-                        chan.send("\rGods are born, not made.\r\n")
-                        return True
-                    channels[target].send("\r * Wake up Neo ...\r\n")
-            updateuser(targetuser, 'cacl', union(args[1:], targetuser['cacl']))
+        if len(args) is 1:
             Commands._printpermissions(chan, target)
+            if intersect(["gold", "silver"], user['cacl']) is False:
+                act = "looks at you funny and takes notes on a clipboard."
+                channels[target].send("\r * {:s} {:s}\r\n".format(chan.get_name(), act))
             return True
-        else:
-            chan.send("\r{:s} isn't here!\r\n".format(target))
+        for permission in args[1:]:
+            if permission not in user['cacl']:
+                chan.send("\rYou have no knowledge of alchemy!\r\n")
+                return True
+            if permission in metals:
+                if "gold" not in user['cacl'] or "god" not in targetuser['cacl']:
+                    chan.send("\rYou can't just give away prestige!\r\n")
+                    return True
+            if permission == "god":
+                if "gold" in user['cacl']:
+                    if intersect(targetuser['cacl'], metals) is True:
+                        updateuser(targetuser, 'cacl', union(["silver"], targetuser['cacl']))
+                    else:
+                        updateuser(targetuser, 'cacl', union(["tin"], targetuser['cacl']))
+                elif "silver" in user['cacl']:
+                    updateuser(targetuser, 'cacl', union(["bronze"], targetuser['cacl']))
+                else:
+                    chan.send("\rGods are born, not made.\r\n")
+                    return True
+                channels[target].send("\r * Wake up Neo ...\r\n")
+        updateuser(targetuser, 'cacl', union(args[1:], targetuser['cacl']))
+        Commands._printpermissions(chan, target, args[1:])
         return True
+    grant._syntax_ = "/grant <username> [command] ... [command n]"
+    grant._usage_ =  " Grant is used to grant commands to another user."
+    grant._usage_ += " You can grant multiple commands seperated by"
+    grant._usage_ += " spaces. You may only grant those commands for"
+    grant._usage_ += " which you have access."
 
     def revoke(chan, args):
         """ Allows you to cruelly rescind powers from a hapless victim """
@@ -384,6 +399,11 @@ class Commands ():
         else:
             chan.send("\rCouldn't find user: {:s}.\r\n".format(target))
         return True
+    revoke._syntax_ = "/revoke <username> [command] ... [command n]"
+    revoke._usage_ =  " Revoke is used to remove commands from another user."
+    revoke._usage_ += " You can revoke multiple commands seperated by"
+    revoke._usage_ += " spaces. You may only revoke commands which"
+    revoke._usage_ += " you can use."
 
     def users(chan):
         """ Displays the list of all existing users """
@@ -394,7 +414,7 @@ class Commands ():
         return True
 
     def kick(chan, args):
-        """ Allows you to kick offensive users """
+        """ Used to eject offensive users """
         if args[0] in channels.keys():
             channel = channels[args[0]]
             msg = "You're fired!"
@@ -551,7 +571,7 @@ def run (command, chan):
         else:
             chan.send("\r> /{:s} <- Syntax error\r\n".format(command))
             time.sleep(.4)
-            Commands.help(chan, command)
+            Commands.help(chan, command, justsyntax=True)
         return True
 
 def decode (char):
