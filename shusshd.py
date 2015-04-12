@@ -89,6 +89,7 @@ except ImportError:
 try:
     from passlib.hash import bcrypt_sha256 as bcrypt
     from passlib.exc import MissingBackendError
+    from passlib.exc import PasswordSizeError
     try:
         bcrypt.get_backend()
     except MissingBackendError:
@@ -196,9 +197,9 @@ class Commands ():
             spaces = " " * (14 - len(command))
             try:
                 helpdoc = getattr(Commands, command).__doc__
+                return("/{:s}{:s}{:s}".format(command, spaces, helpdoc))
             except:
                 return None
-            return("/{:s}{:s}{:s}".format(command, spaces, helpdoc))
 
         def nohelp(chan, command):
             chan.send("\rNo help entry for {:s}\r\n".format(command))
@@ -229,7 +230,6 @@ class Commands ():
                 command = args
             else:                   # Stupid, right?
                 command = args[0]
-            print(command)
             if command.startswith("/"):
                 command = command.lstrip("/")
             if command in command_aliases.keys():
@@ -238,7 +238,6 @@ class Commands ():
                 nohelp(chan, command)
                 return True
             halp = helpline(chan, command)
-            print(halp)
             try:
                 syntax = getattr(Commands, command)._syntax_
             except AttributeError:
@@ -255,14 +254,15 @@ class Commands ():
                 usage = None
             chan.send(formatter(syntax, usage))
             return True
-        chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
-        commands = filter(lambda c: c in user['cacl'], command_list)
-        for command in commands:
-            halp = helpline(chan, command)
-            if halp is not None:
-                chan.send("\r    {:s}\r\n".format(halp))
-        chan.send("\n")
-        return True
+        else:
+            chan.send("\r\n  ShuSSH Chat Help:\r\n\n")
+            commands = filter(lambda c: c in user['cacl'], command_list)
+            for command in commands:
+                halp = helpline(chan, command)
+                if halp is not None:
+                    chan.send("\r    {:s}\r\n".format(halp))
+            chan.send("\n")
+            return True
     help._syntax_ = "/help [command]"
     help._usage_  = " The help command gives you information about the"
     help._usage_ += " commands you can run inside your chat session. When"
@@ -356,7 +356,11 @@ class Commands ():
                 else:
                     chan.send("\rGods are born, not made.\r\n")
                     return True
-                channels[target].send("\r * Wake up Neo ...\r\n")
+                try:
+                    channels[target].send("\r * Wake up Neo ...\r\n")
+                except KeyError:
+                    chan.send("\r{:s} must be online to become a god.\r\n".format(target))
+                    return True
         updateuser(targetuser, 'cacl', union(args[1:], targetuser['cacl']))
         Commands._printpermissions(chan, target, args[1:])
         return True
@@ -438,6 +442,7 @@ class Commands ():
         elif "god" not in userdb[chan.get_name()]['cacl']:
             raise TypeError("Ah ah ah, you didn't say the magic word...")
         elif args[0] == "reset":
+            print("Server is resetting at {:s}'s request.".format(chan.get_name()))
             Commands._server_reset()
         elif args[0] == "shutdown":
             print("Server is shutting down at {:s}'s request.".format(chan.get_name()))
@@ -473,6 +478,8 @@ class Connection (paramiko.ServerInterface):
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
     def check_auth_password(self, username, password):
+        if len(username) > 42:
+            return paramiko.AUTH_FAILED
         if username in userdb:
             user = userdb[username]
             if user['lastlogin'] is None:
@@ -498,7 +505,11 @@ class Connection (paramiko.ServerInterface):
 
 def checkpasswd (username, password):
     user = userdb[username]
-    return bcrypt.verify(password, user['secret'])
+    try:
+        return bcrypt.verify(password, user['secret'])
+    except PasswordSizeError:
+        print("Authentication error for {:s}: Password too long".format(username))
+        return False
 
 def setpasswd (username, password):
     updateuser(userdb[username], 'secret', bcrypt.encrypt(password, rounds=12))
@@ -567,7 +578,7 @@ def run (command, chan):
                 return False
             chan.send("\r> /{:s} {:s} <- Syntax error\r\n".format(command, " ".join(args)))
             time.sleep(.4)
-            chan.send("? Try typing just \"/{:s}\"\r\n".format(command))
+            chan.send("   Try typing just '/{:s}'\r\n".format(command))
         else:
             chan.send("\r> /{:s} <- Syntax error\r\n".format(command))
             time.sleep(.4)
