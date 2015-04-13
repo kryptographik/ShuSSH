@@ -77,6 +77,7 @@ except ImportError:
 
 try:
     import paramiko
+    from paramiko.ssh_exception import SSHException
     if pyV is 3:
         from paramiko.py3compat import u
 except ImportError:
@@ -515,11 +516,16 @@ def setpasswd (username, password):
     updateuser(userdb[username], 'secret', bcrypt.encrypt(password, rounds=12))
 
 def terminate (channel, reason):
+        print("")
+        print(channels.keys())
         username = channel.get_name()
         putQ("{:s} has left. ({:s})".format(username, reason))
-        channel.close()
-        del channels[username]
-        print("Connection closed: {:s}:{:d} ({:s})".format(addr[0], addr[1],username))
+        if channel.closed is False:
+            channel.close()
+            del channels[username]
+        print("")
+        print(channels.keys())
+
 
 def createuser(username, password):
     cacl = Commands._default_acl
@@ -663,23 +669,37 @@ def getansi(chan):
 
 def parse(chan, linebuff):
     while True:
-        chan.send("\r> {:s}".format("".join(linebuff)))
-        char = chan.recv(1)
-        if char == b'\r':
-            return "".join(linebuff)
-        elif char == b'\x7f':
-            if len(linebuff) > 0:
-                chan.send("\b \b")
-                linebuff.pop()
-        elif char == b'\x1b':
-            print("Escape!")
-            code = getansi(chan)
-            print(code)
-        else:
-            chard = decode(char)
-            if chard in string.printable:
-                chan.send(chard)
-                linebuff.append(chard)
+        try:
+            chan.send("\r> {:s}".format("".join(linebuff)))
+            char = chan.recv(1)
+            if char == b'\r':
+                return "".join(linebuff)
+            elif char == b'\x7f':
+                if len(linebuff) > 0:
+                    chan.send("\b \b")
+                    linebuff.pop()
+            elif char == b'\x1b':
+                print("Escape!")
+                code = getansi(chan)
+                print(code)
+            else:
+                chard = decode(char)
+                if chard in string.printable:
+                    chan.send(chard)
+                    linebuff.append(chard)
+        except OSError as e:
+            if "Socket is closed" in str(e):
+                username = chan.get_name()
+                if username in channels:
+                    chan.close()
+                    del channels[username]
+                    terminate(chan, "Broken pipe")
+            else:
+                print("User {:s} disconnected due to unexpected exception: {:s}".format(chan.get_name(), e))
+                terminate(chan, "?")
+            exit()
+        except EOFError as e:
+            print("EOFError: {:s}".format(str(e)))
 
 def chat(chan, Q, linebuffer):
     while True:
@@ -758,7 +778,6 @@ def connect (remote,addr):
         chan.send("Hijacking session from {:s}...\r\n".format(channels[username].getpeername()[0]))
         channels[username].send("\rYour session was hijacked by {:s}.\r\n".format(chan.getpeername()[0]))
         channels[username].close()
-        del channels[username]
     else:
         putQ("{:s} has joined.".format(username))
         if user['lastlogin'] == user['firstlogin']:
