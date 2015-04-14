@@ -273,7 +273,8 @@ class Commands ():
     def quit(chan):
         """ Exits the chat """
         chan.send("\rGoodbye\r\n")
-        terminate(chan, "Quit")
+        bye(chan.get_name(), "Quit")
+        terminate(chan)
         exit()
         return True
 
@@ -515,16 +516,23 @@ def checkpasswd (username, password):
 def setpasswd (username, password):
     updateuser(userdb[username], 'secret', bcrypt.encrypt(password, rounds=12))
 
-def terminate (channel, reason):
-        print("")
-        print(channels.keys())
-        username = channel.get_name()
-        putQ("{:s} has left. ({:s})".format(username, reason))
-        if channel.closed is False:
-            channel.close()
-            del channels[username]
-        print("")
-        print(channels.keys())
+def bye (username, reason):
+    putQ("{:s} has left. ({:s})".format(username, reason))
+
+
+def terminate (channel, reason=None):
+    username = channel.get_name()
+    peername = channel.getpeername()
+    peer = "{:s}:{:d}".format(peername[0], peername[1])
+    if channel.closed is False:
+        channel.close()
+        print("Connection closed from {:s} ({:s})".format(peer, username))
+    try:
+        del channels[username]
+    except KeyError:
+        pass
+    if reason is not None:
+        bye(username, reason)
 
 
 def createuser(username, password):
@@ -691,15 +699,19 @@ def parse(chan, linebuff):
             if "Socket is closed" in str(e):
                 username = chan.get_name()
                 if username in channels:
-                    chan.close()
-                    del channels[username]
-                    terminate(chan, "Broken pipe")
+                    bye(username, "Broken pipe")
+                    terminate(chan)
             else:
                 print("User {:s} disconnected due to unexpected exception: {:s}".format(chan.get_name(), e))
                 terminate(chan, "?")
             exit()
         except EOFError as e:
-            print("EOFError: {:s}".format(str(e)))
+            username = chan.get_name()
+            if username in channels:
+                bye(username, "Broken pipe")
+                terminate(chan)
+            print("EOFError for user {:s}: {:s}".format(username, str(e)))
+            exit()
 
 def chat(chan, Q, linebuffer):
     while True:
